@@ -5,17 +5,20 @@
 #include <memory>
 #include <set>
 #include <algorithm>
+#include <iostream>
+#include <format>
 
 class Shape
 {
 public:
     ~Shape(){}
     virtual void Update() = 0; 
-    virtual void Collides(std::shared_ptr<Shape> other) = 0;
+    virtual bool Collides(std::shared_ptr<Shape> other) = 0;
     virtual void OnNewFrame() = 0;
 
-Vector2 position_,velocity_,acceleration_;
+Vector2 position_,velocity_,acceleration_ = {0,0};
 Color shape_color_;
+bool enable_screen_edge_collision_ = false;
 
 // this list will help us to store the previous collisions with other shapes
 std::set<Shape*> collision_history_;
@@ -31,15 +34,14 @@ public:
         float initial_pos_x,float initial_pos_y, // where the circle will first appear
         float initial_velocity_x,float initial_velocity_y, // how the circle will move from frame to the next
         float radius, // how big is our circle
-        Color shape_color
+        Color shape_color, bool enable_screen_edge_collision=true
     ) 
     {
         position_ = Vector2{initial_pos_x,initial_pos_y},
         velocity_ = Vector2{initial_velocity_x,initial_velocity_y},
         circle_radius_ = radius;
-
+        enable_screen_edge_collision_ = enable_screen_edge_collision;
         shape_color_ = shape_color;
-        DrawCircle(position_.x,position_.y,circle_radius_,shape_color_);
     }
 
     void Update()
@@ -47,17 +49,24 @@ public:
         // update logic
         // update the current position using the velocity
         float dt = GetFrameTime();
+        if(dt > 0.05) dt = 0;
+
+        // update velocity
+        velocity_.x += acceleration_.x * dt;
+        velocity_.y += acceleration_.y * dt;
+        
+        // update position
         position_.x += velocity_.x * dt;
         position_.y += velocity_.y * dt;       
+        // std::cout << std::format("postion: {},{}",position_.x,position_.y);
 
-        auto debug_text = std::format("{},{}",velocity_.x,velocity_.y);
-        
-        HandleEdgeCollision();
+        if(enable_screen_edge_collision_)
+            HandleEdgeCollision();
+
         DrawCircle(position_.x,position_.y,circle_radius_,shape_color_);
-        // DrawText(debug_text.c_str(),position_.x,position_.y,10,BLACK);
     }    
 
-    void Collides(std::shared_ptr<Shape> other);
+    bool Collides(std::shared_ptr<Shape> other);
 
     void OnNewFrame()
     {
@@ -70,6 +79,7 @@ float circle_radius_;
 private:
     void HandleEdgeCollision()
     {
+        std::cout << "Trigger collision\n";
         if(position_.x + circle_radius_ > GetScreenWidth())
         {
             velocity_.x = -velocity_.x;
@@ -84,7 +94,7 @@ private:
         if(position_.y + circle_radius_ > GetScreenHeight() )
         {
             position_.y = GetScreenHeight() - circle_radius_;
-            velocity_.y = -velocity_.y;
+            velocity_.y = 0;
         }
         if(position_.y - circle_radius_ <0)
         {
@@ -103,16 +113,16 @@ public:
         float initial_pos_x,float initial_pos_y, // where the rect will first appear
         float initial_velocity_x,float initial_velocity_y, // how the circle will move from frame to the next
         float width,float height, // size of rect
-        Color shape_color
-)
+        Color shape_color, bool enable_screen_edge_collision=true
+    )
     {
         position_ = Vector2{initial_pos_x,initial_pos_y};
         velocity_ = Vector2{initial_velocity_x,initial_velocity_y};
         width_ = width;
         height_ = height;
         shape_color_ = shape_color;
+        enable_screen_edge_collision_ = enable_screen_edge_collision;
 
-        DrawRectangle(position_.x,position_.y,width_,height_,shape_color_);
     }
 
     void Update()
@@ -120,16 +130,25 @@ public:
         // update logic
         // update the current position using the velocity
         float dt = GetFrameTime();
+        if(dt > 0.05) dt = 0;
+
+        // update velocity
+        velocity_.x += acceleration_.x * dt;
+        velocity_.y += acceleration_.y * dt;
+        
+        // update position
         position_.x += velocity_.x * dt;
         position_.y += velocity_.y * dt;       
 
-        HandleEdgeCollision();
+        if(enable_screen_edge_collision_)
+            HandleEdgeCollision();
+            
         DrawRectangle(position_.x,position_.y,width_,height_,shape_color_);
 
     }
 
 
-    void Collides(std::shared_ptr<Shape> other);
+    bool Collides(std::shared_ptr<Shape> other);
 
     void OnNewFrame()
     {
@@ -171,14 +190,14 @@ private:
 
 };
 
-void Circle::Collides(std::shared_ptr<Shape> other)
+bool Circle::Collides(std::shared_ptr<Shape> other)
 {
     // don't proceed if it is with yourself
     if(this == other.get())
-        return;
+        return false;
 
     if(other->collision_history_.contains(this))
-        return;
+        return false;
     
     collision_history_.insert(other.get());
     
@@ -222,7 +241,10 @@ void Circle::Collides(std::shared_ptr<Shape> other)
             
             // Check for NaN (should be && not ||)
             if(!std::isnan(this_new_vel.x) && !std::isnan(this_new_vel.y))
+            {
                 velocity_ = this_new_vel;
+
+            }
             
             if(!std::isnan(other_new_vel.x) && !std::isnan(other_new_vel.y))
                 circle->velocity_ = other_new_vel;
@@ -235,6 +257,7 @@ void Circle::Collides(std::shared_ptr<Shape> other)
                 position_ = Vector2Add(position_, separation);
                 circle->position_ = Vector2Subtract(circle->position_, separation);
             }
+            return true;
         }
     
     }
@@ -282,7 +305,10 @@ void Circle::Collides(std::shared_ptr<Shape> other)
                 
                 // Check for NaN before applying
                 if(!std::isnan(this_new_vel.x) && !std::isnan(this_new_vel.y))
+                {
                     velocity_ = this_new_vel;
+
+                }
                 
                 if(!std::isnan(rect_new_vel.x) && !std::isnan(rect_new_vel.y))
                     rect->velocity_ = rect_new_vel;
@@ -295,20 +321,24 @@ void Circle::Collides(std::shared_ptr<Shape> other)
                 Vector2 separation = Vector2Scale(normal, overlap / 2.0f);
                 position_ = Vector2Add(position_, separation);
                 rect->position_ = Vector2Subtract(rect->position_, separation);
+                    
             }
+            return true;
         }
     }
+    
+    return false;
 }
 
 
-void Rect::Collides(std::shared_ptr<Shape> other)
+bool Rect::Collides(std::shared_ptr<Shape> other)
 {
         // don't proceed if it is with yourself
     if(this == other.get())
-        return;
+        return false;
 
     if(other->collision_history_.contains(this))
-        return;
+        return false;
     
     collision_history_.insert(other.get());
     
@@ -317,9 +347,8 @@ void Rect::Collides(std::shared_ptr<Shape> other)
     auto circle = std::dynamic_pointer_cast<Circle>(other);
     auto rect = std::dynamic_pointer_cast<Rect>(other);
 
-  if(circle)
+    if(circle)
     {
-        // Rectangle to Circle collision (inverse of what you already have)
         // Convert rect corner position to center for calculations
         Vector2 rect_center = {position_.x + width_/2.0f, position_.y + height_/2.0f};
         
@@ -346,8 +375,18 @@ void Rect::Collides(std::shared_ptr<Shape> other)
                 float impulseScalar = -2.0f * velocityAlongNormal;
                 Vector2 impulse = Vector2Scale(normal, impulseScalar / 2.0f);
                 
-                circle->velocity_ = Vector2Add(circle->velocity_, impulse);
-                velocity_ = Vector2Subtract(velocity_, impulse);
+                Vector2 this_new_vel = Vector2Add(circle->velocity_, impulse);
+                Vector2 rect_new_vel = Vector2Subtract(velocity_, impulse);
+                
+                // Check for NaN before applying
+                if(!std::isnan(this_new_vel.x) && !std::isnan(this_new_vel.y))
+                {
+                    velocity_ = this_new_vel;
+
+                }
+                
+                if(!std::isnan(rect_new_vel.x) && !std::isnan(rect_new_vel.y))
+                    circle->velocity_ = rect_new_vel;
             }
             
             float overlap = circle->circle_radius_ - distance;
@@ -357,8 +396,10 @@ void Rect::Collides(std::shared_ptr<Shape> other)
                 circle->position_ = Vector2Add(circle->position_, separation);
                 position_ = Vector2Subtract(position_, separation);
             }
+            return true;
         }
-    }    else if(rect)
+    }
+    else if(rect)
     {
         // Rectangle to Rectangle collision (AABB collision)
         // Check if rectangles overlap
@@ -418,7 +459,10 @@ void Rect::Collides(std::shared_ptr<Shape> other)
                 
                 // Check for NaN before applying
                 if(!std::isnan(this_new_vel.x) && !std::isnan(this_new_vel.y))
+                {
                     velocity_ = this_new_vel;
+
+                }
                 
                 if(!std::isnan(rect_new_vel.x) && !std::isnan(rect_new_vel.y))
                     rect->velocity_ = rect_new_vel;
@@ -426,11 +470,15 @@ void Rect::Collides(std::shared_ptr<Shape> other)
             
             // Separate overlapping rectangles
             Vector2 separation = Vector2Scale(normal, overlap / 2.0f);
-            position_ = Vector2Subtract(position_, separation);
             rect->position_ = Vector2Add(rect->position_, separation);
-        }
-    }
+            position_ = Vector2Subtract(position_, separation);
 
+            return true;
+        }
+
+    }
+    
+    return false;
 };
 
 

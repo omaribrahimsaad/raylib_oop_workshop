@@ -59,8 +59,6 @@ int main(void)
 
     std::vector<std::shared_ptr<Shape>> shapes;
 
-    auto circleA = GenerateCricle();
-    auto circleB = GenerateCricle();
 
     while (!WindowShouldClose())
     {
@@ -87,10 +85,7 @@ int main(void)
             // trigger on new frame event
             for(auto shape : shapes)
             {
-                for(auto other : shapes)
-                {
-                    shape->OnNewFrame();
-                }
+                shape->OnNewFrame();
             }
             
             // compute shape collisions
@@ -101,13 +96,11 @@ int main(void)
                     shape->Collides(other);
                 }
             }
-            // circleA->Collides(circleB);
+
             for(auto shape:shapes)
             {
                 shape->Update();
             }
-            // circleA->Update();
-            // circleB->Update();
 
 
             if(IsKeyDown(KEY_SPACE))
