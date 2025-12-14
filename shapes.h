@@ -20,8 +20,6 @@ Vector2 position_,velocity_,acceleration_ = {0,0};
 Color shape_color_;
 bool enable_screen_edge_collision_ = false;
 
-// this list will help us to store the previous collisions with other shapes
-std::set<Shape*> collision_history_;
 
 };
 
@@ -70,8 +68,6 @@ public:
 
     void OnNewFrame()
     {
-        // reset the state of the objects for each new frame
-        collision_history_.clear();
         
     }
 
@@ -152,9 +148,6 @@ public:
 
     void OnNewFrame()
     {
-        // reset the state of the objects for each new frame
-        collision_history_.clear();
-
     }
 
 
@@ -195,11 +188,6 @@ bool Circle::Collides(std::shared_ptr<Shape> other)
     // don't proceed if it is with yourself
     if(this == other.get())
         return false;
-
-    if(other->collision_history_.contains(this))
-        return false;
-    
-    collision_history_.insert(other.get());
     
     
     // cast to find what is the derived type
@@ -336,11 +324,6 @@ bool Rect::Collides(std::shared_ptr<Shape> other)
         // don't proceed if it is with yourself
     if(this == other.get())
         return false;
-
-    if(other->collision_history_.contains(this))
-        return false;
-    
-    collision_history_.insert(other.get());
     
     
     // cast to find what is the derived type
