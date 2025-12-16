@@ -34,6 +34,11 @@ int main()
     auto platform = std::make_shared<Platform>(platform_shape);
     level->level_entities_.push_back(platform); // add the platform to our level's entity list
 
+    // add an enemy
+    auto enemy_shape = std::make_shared<Circle>(350,100,0,0,20,BLUE,false);
+    auto enemy = std::make_shared<Enemy>(enemy_shape,100);
+    level->level_entities_.push_back(enemy); // add the platform to our level's entity list
+
     // create the player and its shape
     std::shared_ptr<Circle> player_shape = std::make_shared<Circle>(300,100,0,0,20,RED,false);
     std::shared_ptr<Player> player = std::make_shared<Player>(player_shape);

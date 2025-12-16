@@ -97,9 +97,33 @@ public:
                                 // Platform stays fixed
                                 platform->entity_shape_->velocity_ = {0, 0};
                                 platform->entity_shape_->position_ = prev_platform_position;
-                                
+                                player_->can_jump_ = true;
                             }
                         }                    
+
+                        // first we need to know which entity is the one we are using first
+                        auto enemy = std::dynamic_pointer_cast<Enemy>(current_level_->level_entities_[i]);
+
+                        if(!enemy || !platform)
+                        {
+                            enemy = std::dynamic_pointer_cast<Enemy>(current_level_->level_entities_[j]);
+                            platform = std::dynamic_pointer_cast<Platform>(current_level_->level_entities_[i]);
+                        }
+
+                        if(enemy && platform)
+                        {
+                            auto prev_platform_position = platform->entity_shape_->position_;
+                            if (enemy->entity_shape_->Collides(platform->entity_shape_))
+                            {
+                                // Platform stays fixed
+                                platform->entity_shape_->velocity_ = {0, 0};
+                                platform->entity_shape_->position_ = prev_platform_position;
+
+                            }
+
+                        }
+
+
                     }
                 }
                 
@@ -114,6 +138,11 @@ public:
                 {
                     
                     player_->entity_shape_->velocity_.x = 100;
+                }
+                if(IsKeyDown(KEY_UP))
+                {
+                    player_->Jump();
+                    player_->can_jump_ = false;
                 }
                                 
                 // is to avoid any movement when we are not pressing any key

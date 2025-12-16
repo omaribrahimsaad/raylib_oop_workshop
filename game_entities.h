@@ -26,10 +26,21 @@ public:
         entity_shape_->acceleration_ = GRAVITY;
     }
 
+    void Jump()
+    {
+        if(can_jump_)
+        {
+            entity_shape_->velocity_ = PLAYER_JUMP_VEL;
+
+        }
+    }
+
     void Update()
     {
         entity_shape_->Update();
     }
+
+    bool can_jump_ = false;
 
 };
 
@@ -42,7 +53,41 @@ public:
 class Enemy : public Entity
 {
 public:
+    Enemy(std::shared_ptr<Shape> enemy_shape, float distance_marching)
+    {
+        entity_shape_ = enemy_shape;
+        initial_x_ = entity_shape_->position_.x;
+        
+        distance_marching_ = distance_marching;
 
+        // set a constant gravity
+        entity_shape_->acceleration_ = GRAVITY;
+        entity_shape_->enable_screen_edge_collision_= false;
+    }
+
+    void Update()
+    {
+        // update the position using distance marching
+        if(entity_shape_->position_.x < initial_x_ + distance_marching_  && 
+            entity_shape_->position_.x > initial_x_ - distance_marching_ 
+        )
+        {
+        }
+        if()
+        {
+            entity_shape_->velocity_.x = -200;
+        }
+        else
+        {
+
+        }
+
+        entity_shape_->Update();
+    }
+
+
+    float distance_marching_;
+    float initial_x_;
 };
 
 class Platform : public Entity
