@@ -30,14 +30,14 @@ int main()
     std::shared_ptr<Level> level = std::make_shared<Level>(test_camera,Vector2{0,20}); // create our level  with camera and player position
 
     // create the platforms for our level
-    auto platform_shape = std::make_shared<Rect>(-100,200,0,0,2000,40,GREEN,false); 
-    auto platform = std::make_shared<Platform>(platform_shape);
-    level->level_entities_.push_back(platform); // add the platform to our level's entity list
+    level->level_entities_ =
+    {
+        std::make_shared<Platform>(std::make_shared<Rect>(-100,200,0,0,400,40,GREEN,false)),
+        std::make_shared<Platform>(std::make_shared<Rect>(250,60,0,0,400,40,GREEN,false)),
+        std::make_shared<WinPlatform>(std::make_shared<Rect>(600,200,0,0,400,40,GOLD,false)),
+        std::make_shared<Enemy>(std::make_shared<Circle>(450,40,0,0,20,BLUE,false),100)
+    };
 
-    // add an enemy
-    auto enemy_shape = std::make_shared<Circle>(350,100,0,0,20,BLUE,false);
-    auto enemy = std::make_shared<Enemy>(enemy_shape,100);
-    level->level_entities_.push_back(enemy); // add the platform to our level's entity list
 
     // create the player and its shape
     std::shared_ptr<Circle> player_shape = std::make_shared<Circle>(300,100,0,0,20,RED,false);

@@ -60,6 +60,25 @@ public:
         current_game_state_ = kPlaying;
     }
 
+    // utilities
+    struct Text
+    {
+        const char* text_;
+        int font_size_;
+        Color text_color_;
+        
+        int GetTextWidth(){return MeasureText(text_,font_size_);}
+        void DrawTextOnScreen(float x,float y)
+        {
+            DrawText(
+                text_,x - GetTextWidth()/2.f,
+                y-font_size_/2.f,
+                font_size_,
+                text_color_);
+
+        }
+    };
+
     /*
         Where the core game logic sits and to be updated on every frame.
     */
@@ -78,55 +97,114 @@ public:
                     for(int j=i+1;j< current_level_->level_entities_.size();j++)
                     {
                         // first we need to know which entity is the one we are using first
-                        auto player = std::dynamic_pointer_cast<Player>(current_level_->level_entities_[i]);
-                        auto platform = std::dynamic_pointer_cast<Platform>(current_level_->level_entities_[j]);
-
-                        if(!player || !platform)
                         {
-                            player = std::dynamic_pointer_cast<Player>(current_level_->level_entities_[j]);
-                            platform = std::dynamic_pointer_cast<Platform>(current_level_->level_entities_[i]);
 
+                            auto player = std::dynamic_pointer_cast<Player>(current_level_->level_entities_[i]);
+                            auto platform = std::dynamic_pointer_cast<Platform>(current_level_->level_entities_[j]);
+                            
+                            if(!player || !platform)
+                            {
+                                player = std::dynamic_pointer_cast<Player>(current_level_->level_entities_[j]);
+                                platform = std::dynamic_pointer_cast<Platform>(current_level_->level_entities_[i]);
+                                
+                            }
+                            
+                            // Now check if we have a valid player-platform pair
+                            if (player && platform)
+                            {
+                                auto prev_platform_position = platform->entity_shape_->position_;
+                                if (player->entity_shape_->Collides(platform->entity_shape_))
+                                {
+                                    // Platform stays fixed
+                                    platform->entity_shape_->velocity_ = {0, 0};
+                                    platform->entity_shape_->position_ = prev_platform_position;
+                                    player_->can_jump_ = true;
+                                }
+                            }                    
                         }
 
-                        // Now check if we have a valid player-platform pair
-                        if (player && platform)
                         {
-                            auto prev_platform_position = platform->entity_shape_->position_;
-                            if (player->entity_shape_->Collides(platform->entity_shape_))
+
+                            auto enemy = std::dynamic_pointer_cast<Enemy>(current_level_->level_entities_[i]);
+                            auto platform = std::dynamic_pointer_cast<Platform>(current_level_->level_entities_[j]);
+                            
+                            if(!enemy || !platform)
                             {
-                                // Platform stays fixed
-                                platform->entity_shape_->velocity_ = {0, 0};
-                                platform->entity_shape_->position_ = prev_platform_position;
-                                player_->can_jump_ = true;
+                                enemy = std::dynamic_pointer_cast<Enemy>(current_level_->level_entities_[j]);
+                                platform = std::dynamic_pointer_cast<Platform>(current_level_->level_entities_[i]);
                             }
-                        }                    
-
-                        // first we need to know which entity is the one we are using first
-                        auto enemy = std::dynamic_pointer_cast<Enemy>(current_level_->level_entities_[i]);
-
-                        if(!enemy || !platform)
+                            
+                            if(enemy && platform)
+                            {
+                                auto prev_platform_position = platform->entity_shape_->position_;
+                                if (enemy->entity_shape_->Collides(platform->entity_shape_))
+                                {
+                                    // Platform stays fixed
+                                    platform->entity_shape_->velocity_ = {0, 0};
+                                    platform->entity_shape_->position_ = prev_platform_position;
+                                    
+                                }
+                                
+                            }
+                        }
+                            
                         {
-                            enemy = std::dynamic_pointer_cast<Enemy>(current_level_->level_entities_[j]);
-                            platform = std::dynamic_pointer_cast<Platform>(current_level_->level_entities_[i]);
+                            // collision with enemy
+                            auto enemy = std::dynamic_pointer_cast<Enemy>(current_level_->level_entities_[j]);
+                            auto player = std::dynamic_pointer_cast<Player>(current_level_->level_entities_[i]);
+                            // swap if neccessary
+                            if(!enemy || !player)
+                            {
+                                enemy = std::dynamic_pointer_cast<Enemy>(current_level_->level_entities_[i]);
+                                player = std::dynamic_pointer_cast<Player>(current_level_->level_entities_[j]);
+                            }
+                            
+                            if(enemy && player)
+                            {
+                                if (enemy->entity_shape_->Collides(player->entity_shape_))
+                                {
+                                    current_game_state_ = kDead;   
+                                }
+                                
+                            }
                         }
 
-                        if(enemy && platform)
+                        
                         {
-                            auto prev_platform_position = platform->entity_shape_->position_;
-                            if (enemy->entity_shape_->Collides(platform->entity_shape_))
-                            {
-                                // Platform stays fixed
-                                platform->entity_shape_->velocity_ = {0, 0};
-                                platform->entity_shape_->position_ = prev_platform_position;
+                            // colision with win platform
+                            auto win_platform = std::dynamic_pointer_cast<WinPlatform>(current_level_->level_entities_[i]);
+                            auto player = std::dynamic_pointer_cast<Player>(current_level_->level_entities_[j]);
 
+                            if(!win_platform || !player)
+                            {
+                                auto win_platform = std::dynamic_pointer_cast<WinPlatform>(current_level_->level_entities_[j]);
+                                auto player = std::dynamic_pointer_cast<Player>(current_level_->level_entities_[i]);
                             }
 
+                            if(win_platform && player)
+                            {
+                                auto prev_platform_position = win_platform->entity_shape_->position_;
+                                if (player->entity_shape_->Collides(win_platform->entity_shape_))
+                                {
+                                    // Platform stays fixed
+                                    win_platform->entity_shape_->velocity_ = {0, 0};
+                                    win_platform->entity_shape_->position_ = prev_platform_position;
+                                    current_game_state_ = kWin;
+                                }
+
+                            }
                         }
 
 
                     }
                 }
                 
+                // handle if player falls:
+                if(player_->entity_shape_->position_.y > current_level_->camera_->target.y + GetScreenHeight()/2)
+                {
+                    current_game_state_ = kDead;
+                }
+
                 //-------------------------------------------------------------------------------------------------
                 // input handling
                 //-------------------------------------------------------------------------------------------------
@@ -179,12 +257,35 @@ public:
             break;
             case kDead:
             {
-                // TODO:
+                ClearBackground(GRAY);
+                Text death_message = {"You Died!",100,WHITE};
+                death_message.DrawTextOnScreen(GetScreenWidth()/2.f,GetScreenHeight()/3.f);
+
+                Text restart_instruction = {"Press space to restart",50,WHITE};
+                restart_instruction.DrawTextOnScreen(GetScreenWidth()/2.f,2.f*GetScreenHeight()/3.f);
+
+                if(IsKeyPressed(KEY_SPACE))
+                {
+                    player_->entity_shape_->position_ = current_level_->player_starting_point_;
+                    current_game_state_ = kPlaying;
+                }
             }
             break;
             case kWin:
             {
-                // TODO:
+                ClearBackground(GOLD);
+                Text death_message = {"You Won!",100,WHITE};
+                death_message.DrawTextOnScreen(GetScreenWidth()/2.f,GetScreenHeight()/3.f);
+
+                Text restart_instruction = {"Press space to restart",50,WHITE};
+                restart_instruction.DrawTextOnScreen(GetScreenWidth()/2.f,2.f*GetScreenHeight()/3.f);
+
+                if(IsKeyPressed(KEY_SPACE))
+                {
+                    player_->entity_shape_->position_ = current_level_->player_starting_point_;
+                    current_game_state_ = kPlaying;
+                }
+
             }
             break;
         }

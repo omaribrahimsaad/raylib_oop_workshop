@@ -102,5 +102,14 @@ public:
 
 };
 
+class WinPlatform : public Platform
+{
+public:
+    WinPlatform(std::shared_ptr<Shape> platform_shape)
+    :Platform(platform_shape)
+    {
+        platform_shape->shape_color_ = GOLD;
+    }
+};
 
 #endif //GAME_ENTITIES_H
