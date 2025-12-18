@@ -6,6 +6,7 @@
 #define GRAVITY Vector2{0,200}
 #define JUMP_COOLDOWN 3
 #define PLAYER_JUMP_VEL  Vector2{0,-250}
+#define ENEMY_SPEED 200.f
 
 class Entity
 {
@@ -63,25 +64,20 @@ public:
         // set a constant gravity
         entity_shape_->acceleration_ = GRAVITY;
         entity_shape_->enable_screen_edge_collision_= false;
+
+        entity_shape_->velocity_.x = ENEMY_SPEED;
     }
 
     void Update()
     {
         // update the position using distance marching
-        if(entity_shape_->position_.x < initial_x_ + distance_marching_  && 
-            entity_shape_->position_.x > initial_x_ - distance_marching_ 
-        )
+        if(
+            entity_shape_->position_.x > initial_x_ + distance_marching_ ||
+            entity_shape_->position_.x < initial_x_ - distance_marching_ )
         {
+            entity_shape_->velocity_.x = -entity_shape_->velocity_.x;
         }
-        if()
-        {
-            entity_shape_->velocity_.x = -200;
-        }
-        else
-        {
-
-        }
-
+        
         entity_shape_->Update();
     }
 
